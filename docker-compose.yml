@@ -8,7 +8,7 @@ services:
     ports:
       - "8501:8501"
     # command: streamlit run app.py
-    command: streamlit run my_app.py --server.port 8501 --server.baseUrlPath / --server.enableCORS false --server.enableXsrfProtection false
+    command: streamlit run app.py --server.port 8501 --server.baseUrlPath / --server.enableCORS false --server.enableXsrfProtection false
 
   nginx:
     container_name: nginx
