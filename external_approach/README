@@ -1,0 +1,71 @@
+## Clone Repos ##
+```bash
+mkdir /repos
+cd /repos
+sudo chown -R $USER:$USER /repos
+sudo chmod -R 755 /repos
+scp -i tesla-nginx-keys.cer -r ./landing_page ubuntu@ec2-18-197-70-66.eu-central-1.compute.amazonaws.com:/repos
+git clone tesla-landing
+git clone tesla-web
+```
+
+
+
+- if production postgres database is not accessible, install postgres, create a table and run the following commands:
+    - CREATE ROLE web_anon NOLOGIN
+    - GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO web_anon
+    - CREATE ROLE authenticator INHERIT LOGIN PASSWORD 'pass'
+    - GRANT web_anon TO authenticator
+
+## Installs and Setups ##
+
+### Install Docker ###
+```bash
+sudo apt-get update
+sudo apt-get install docker.io
+sudo source /etc/bash_completion.d/docker.io
+service docker.io status
+```
+
+### Install Docker-Compose ###
+```bash
+sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+docker-compose --version
+sudo systemctl enable docker
+sudo usermod -aG docker ${USER}
+logout
+login
+```
+
+### Install and Setup Nginx ###
+
+(Updates the system packages).
+```bash
+sudo apt-get update 
+sudo apt install nginx 
+cd /etc/nginx/sites-available/
+sudo vi tesla_labs.conf
+```
+Paste the content of this repo's nginx/tesla_labs.conf into it.
+```bash
+sudo ln -s /etc/nginx/sites-available/tesla_labs.conf /etc/nginx/sites-enabled/ 
+```
+will map this configuration file to sites-enabled directory.
+
+
+### launch projects ###
+
+```bash
+cd /repos/tesla-web
+docker-compose up --build -d
+```
+run 
+/repos/tesla-web/docker-compose container for streamlit app
+run postgREST in /repos/postgrest with postgrest ./postgrest.conf
+launch nginx with 'nginx'
+
+launch:
+sudo systemctl restart nginx 
+sudo nginx -t
