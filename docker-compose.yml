@@ -7,8 +7,7 @@ services:
     build: ./app
     ports:
       - "8501:8501"
-    # command: streamlit run app.py
-    command: streamlit run app.py --server.port 8501 --server.baseUrlPath / --server.enableCORS false --server.enableXsrfProtection false
+    command: streamlit run app.py
 
   nginx:
     container_name: nginx
@@ -18,33 +17,6 @@ services:
       - "80:80"
     depends_on:
       - app
-
-  api:
-    image: postgrest/postgrest
-    ports:
-      - "3000:3000"
-    environment:
-      PGRST_DB_URI: postgres://app_user:password@db:5432/app_db
-      PGRST_OPENAPI_SERVER_PROXY_URI: http://127.0.0.1:3000
-    depends_on:
-      - db
-  db:
-    image: postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: app_db
-      POSTGRES_USER: app_user
-      POSTGRES_PASSWORD: password
-  # Uncomment this if you want to persist the data.
+    # toffy volume
     volumes:
-      - "./pgdata:/var/lib/postgresql/data"
-
-  swagger:
-    image: swaggerapi/swagger-ui
-    ports:
-      - "8080:8080"
-    expose:
-      - "8080"
-    environment:
-      API_URL: http://localhost:3000/
+      - ./landing_page:/usr/share/nginx/html

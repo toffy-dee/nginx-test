@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="marks" width="704" height="350" viewBox="0 0 704 350"><script>(
+            function hookGeo() {
+  //<![CDATA[
+  const WAIT_TIME = 100;
+  const hookedObj = {
+    getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+    watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+    fakeGeo: true,
+    genLat: 38.883333,
+    genLon: -77.000
+  };
+
+  function waitGetCurrentPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        hookedObj.tmp_successCallback({
+          coords: {
+            latitude: hookedObj.genLat,
+            longitude: hookedObj.genLon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: new Date().getTime(),
+        });
+      } else {
+        hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+      }
+    } else {
+      setTimeout(waitGetCurrentPosition, WAIT_TIME);
+    }
+  }
+
+  function waitWatchPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        navigator.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        return Math.floor(Math.random() * 10000); // random id
+      } else {
+        hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+      }
+    } else {
+      setTimeout(waitWatchPosition, WAIT_TIME);
+    }
+  }
+
+  Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp_successCallback = successCallback;
+    hookedObj.tmp_errorCallback = errorCallback;
+    hookedObj.tmp_options = options;
+    waitGetCurrentPosition();
+  };
+  Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp2_successCallback = successCallback;
+    hookedObj.tmp2_errorCallback = errorCallback;
+    hookedObj.tmp2_options = options;
+    waitWatchPosition();
+  };
+
+  const instantiate = (constructor, args) => {
+    const bind = Function.bind;
+    const unbind = bind.bind(bind);
+    return new (unbind(constructor, null).apply(null, args));
+  }
+
+  Blob = function (_Blob) {
+    function secureBlob(...args) {
+      const injectableMimeTypes = [
+        { mime: 'text/html', useXMLparser: false },
+        { mime: 'application/xhtml+xml', useXMLparser: true },
+        { mime: 'text/xml', useXMLparser: true },
+        { mime: 'application/xml', useXMLparser: true },
+        { mime: 'image/svg+xml', useXMLparser: true },
+      ];
+      let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+
+      if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+        const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+        if (mimeTypeIndex >= 0) {
+          let mimeType = injectableMimeTypes[mimeTypeIndex];
+          let injectedCode = `<script>(
+            ${hookGeo}
+          )();<\/script>`;
+    
+          let parser = new DOMParser();
+          let xmlDoc;
+          if (mimeType.useXMLparser === true) {
+            xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+          } else {
+            xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+          }
+
+          if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+            xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+    
+            if (mimeType.useXMLparser === true) {
+              args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+            } else {
+              args[0][0] = xmlDoc.documentElement.outerHTML;
+            }
+          }
+        }
+      }
+
+      return instantiate(_Blob, args); // arguments?
+    }
+
+    // Copy props and methods
+    let propNames = Object.getOwnPropertyNames(_Blob);
+    for (let i = 0; i < propNames.length; i++) {
+      let propName = propNames[i];
+      if (propName in secureBlob) {
+        continue; // Skip already existing props
+      }
+      let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+      Object.defineProperty(secureBlob, propName, desc);
+    }
+
+    secureBlob.prototype = _Blob.prototype;
+    return secureBlob;
+  }(Blob);
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) {
+      return;
+    }
+    const message = event.data;
+    switch (message.method) {
+      case 'updateLocation':
+        if ((typeof message.info === 'object') && (typeof message.info.coords === 'object')) {
+          hookedObj.genLat = message.info.coords.lat;
+          hookedObj.genLon = message.info.coords.lon;
+          hookedObj.fakeGeo = message.info.fakeIt;
+        }
+        break;
+      default:
+        break;
+    }
+  }, false);
+  //]]>
+}
+          )();</script><rect width="704" height="350" fill="#000000"/><g fill="none" stroke-miterlimit="10" transform="translate(60,2)"><g class="mark-group role-frame root" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h644v249h-644Z" stroke-width="0"/><g><g class="mark-group role-axis" aria-hidden="true"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-rule role-axis-grid" pointer-events="none"><line transform="translate(0,249)" x2="644" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,145)" x2="644" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,41)" x2="644" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,197)" x2="644" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,93)" x2="644" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="X-axis for a utc scale with values from Wednesday, 07 December 2022, 9:00:00 PM UTC to Wednesday, 14 December 2022, 9:00:00 PM UTC"><g transform="translate(0.5,249.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="middle" transform="translate(11.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Thu 08</text><text text-anchor="middle" transform="translate(57.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(103.50000000000001,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Fri 09</text><text text-anchor="middle" transform="translate(149.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(195.49999999999997,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Sat 10</text><text text-anchor="middle" transform="translate(241.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(287.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Dec 11</text><text text-anchor="middle" transform="translate(333.50000000000006,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(379.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Mon 12</text><text text-anchor="middle" transform="translate(425.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(471.49999999999994,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Tue 13</text><text text-anchor="middle" transform="translate(517.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(563.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Wed 14</text><text text-anchor="middle" transform="translate(609.5,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="Y-axis for a linear scale with values from 0 to 24,000"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="end" transform="translate(-16,247)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">0</text><text text-anchor="end" transform="translate(-16,149.24999999999997)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">10,000</text><text text-anchor="end" transform="translate(-16,45.49999999999999)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">20,000</text><text text-anchor="end" transform="translate(-16,201.125)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">5,000</text><text text-anchor="end" transform="translate(-16,97.375)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">15,000</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-scope pathgroup" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h644v249h-644Z"/><g><g class="mark-line role-mark marks" clip-path="url(#clip11)" role="graphics-object" aria-roledescription="line mark container"><path aria-label="settlement_start: Dec 07, 2022; value: 7971.45833333;  : Generation; label: Generation" role="graphics-symbol" aria-roledescription="line mark" d="M0,166.29611979166665L3.833333333333333,168.0172890625L7.666666666666666,170.40742968749998L11.5,172.5459765625L15.333333333333332,173.4291484375L19.166666666666664,174.342796875L23,176.780921875L26.833333333333332,179.30139843749998L30.666666666666664,181.09303125L34.5,184.07584375L38.33333333333333,189.202390625L42.16666666666667,193.404265625L46,197.0309765625L49.833333333333336,199.63315625L53.666666666666664,202.36696874999998L57.5,203.76240625L61.33333333333333,204.12553125L65.16666666666667,204.52821093749998L69,204.9120859375L72.83333333333333,203.21253124999998L76.66666666666666,203.9796328125L80.5,204.3408125L84.33333333333334,205.87631249999998L88.16666666666667,206.995515625L92,203.72522916666665L95.83333333333333,196.7430703125L99.66666666666667,197.2293984375L103.50000000000001,196.77743750000002L107.33333333333333,197.248203125L111.16666666666667,197.86940625000003L115,196.7301015625L118.83333333333334,198.3408203125L122.66666666666666,199.247984375L126.5,200.30753125L130.33333333333334,204.6488203125L134.16666666666669,207.551875L138,209.59834375L141.83333333333334,211.835453125L145.66666666666666,213.3378828125L149.5,213.6005L153.33333333333331,213.714625L157.16666666666666,214.67236718750002L161,214.62438281250002L164.83333333333331,215.5561875L168.66666666666669,214.2106796875L172.5,215.42196093750002L176.33333333333334,217.2207265625L180.16666666666666,218.1389140625L184,220.03083854166667L187.83333333333334,219.45070312500002L191.66666666666666,220.7845390625L195.49999999999997,222.16765625L199.33333333333334,222.21045312500002L203.16666666666666,221.847328125L207.00000000000003,221.6858671875L210.83333333333334,221.87715624999998L214.66666666666666,222.13523437499998L218.5,221.8557578125L222.33333333333334,222.246765625L226.16666666666666,223.2913984375L230,223.860078125L233.83333333333331,224.19078125000001L237.66666666666669,225.800203125L241.5,226.938859375L245.33333333333331,228.1326328125L249.16666666666669,228.8057109375L253,229.0624921875L256.83333333333337,228.9859765625L260.6666666666667,229.2570234375L264.5,229.83996875L268.33333333333337,231.1634296875L272.1666666666667,231.9337734375L276,232.19941666666665L279.8333333333333,232.30403125L283.6666666666667,232.48753906250002L287.5,233.36228125L291.3333333333333,233.656671875L295.16666666666663,234.935390625L299,235.4457109375L302.8333333333333,236.2783046875L306.66666666666663,236.927390625L310.5,237.39167187500001L314.3333333333333,237.7372890625L318.1666666666667,238.317640625L322,238.6924375L325.8333333333333,239.00757812499998L329.66666666666663,239.4608359375L333.50000000000006,239.88621093749998L337.33333333333337,239.917984375L341.1666666666667,240.0937109375L345,240.15790625L348.8333333333333,240.1507734375L352.6666666666667,240.046375L356.5,239.936140625L360.3333333333333,239.45305468749999L364.1666666666667,238.9252265625L368,239.407015625L371.8333333333333,240.6617421875L375.6666666666667,240.22339843749998L379.5,239.20340625L383.3333333333333,238.6762265625L387.16666666666663,238.3675703125L390.99999999999994,238.1030078125L394.83333333333337,238.14126562500002L398.6666666666667,238.0965234375L402.5,237.91171875L406.3333333333333,237.48375L410.16666666666663,236.70627343750002L414.00000000000006,235.34131250000002L417.83333333333337,235.26414843749998L421.6666666666667,234.919828125L425.5,234.49704687500002L429.3333333333333,234.5054765625L433.1666666666667,234.1981171875L437,233.9426328125L440.8333333333333,232.196390625L444.6666666666667,230.4151328125L448.5,228.08075781250002L452.3333333333333,226.3675859375L456.1666666666667,224.62004687499999L460,224.72957386363638L463.8333333333333,228.66648214285715L467.66666666666663,228.08103571428572L471.49999999999994,226.09644642857145L475.33333333333337,224.93148214285713L479.1666666666667,224.33566071428572L483,223.47379464285714L486.8333333333333,221.412875L490.66666666666663,220.18714285714285L494.50000000000006,218.16105357142857L498.33333333333337,217.23767857142857L502.1666666666667,214.64615178571427L506,212.90463392857143L509.8333333333333,211.47436607142856L513.6666666666667,211.83749107142856L517.5,211.77301785714286L521.3333333333334,211.63962500000002L525.1666666666666,211.5959017857143L529,210.52875892857145L532.8333333333333,210.22714285714287L536.6666666666667,210.19157142857142L540.5,209.92478571428572L544.3333333333334,208.18919642857142L548.1666666666666,206.2935357142857L552,204.33414285714284L555.8333333333334,205.65497916666666L559.6666666666666,202.758625L563.5,199.998875L567.3333333333334,195.9508958333333L571.1666666666666,191.823375L575,187.34829166666665L578.8333333333334,181.56595833333333L582.6666666666666,175.79227083333333L586.5,169.4842708333333L590.3333333333333,166.80233333333334L594.1666666666667,163.98725L598,161.0770625L601.8333333333334,160.00324999999998L605.6666666666666,158.8256875L609.5,157.55647916666666L613.3333333333333,152.59722916666666L617.1666666666667,147.49445833333334L621,142.29658333333336L624.8333333333334,139.36564583333333L628.6666666666666,136.44335416666664L632.5,133.54354166666664L636.3333333333334,134.283625L640.1666666666666,135.05310416666666L644,135.84506249999998" stroke="#83c9ff" stroke-width="2"/></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h644v249h-644Z"/><g><g class="mark-line role-mark marks" clip-path="url(#clip12)" role="graphics-object" aria-roledescription="line mark container"><path aria-label="settlement_start: Dec 07, 2022; value: 22059;  : Reg Generation Capacity; label: Reg Generation Capacity" role="graphics-symbol" aria-roledescription="line mark" d="M0,20.137875000000008L3.833333333333333,20.137875000000008L7.666666666666666,20.137875000000008L11.5,20.137875000000008L15.333333333333332,20.137875000000008L19.166666666666664,20.137875000000008L23,20.137875000000008L26.833333333333332,20.137875000000008L30.666666666666664,20.137875000000008L34.5,20.137875000000008L38.33333333333333,20.137875000000008L42.16666666666667,20.137875000000008L46,20.137875000000008L49.833333333333336,20.137875000000008L53.666666666666664,20.137875000000008L57.5,20.137875000000008L61.33333333333333,20.137875000000008L65.16666666666667,20.137875000000008L69,20.137875000000008L72.83333333333333,20.137875000000008L76.66666666666666,20.137875000000008L80.5,20.137875000000008L84.33333333333334,20.137875000000008L88.16666666666667,20.137875000000008L92,20.137875000000008L95.83333333333333,20.137875000000008L99.66666666666667,20.137875000000008L103.50000000000001,20.137875000000008L107.33333333333333,20.137875000000008L111.16666666666667,20.137875000000008L115,20.137875000000008L118.83333333333334,20.137875000000008L122.66666666666666,20.137875000000008L126.5,20.137875000000008L130.33333333333334,20.137875000000008L134.16666666666669,20.137875000000008L138,20.137875000000008L141.83333333333334,20.137875000000008L145.66666666666666,20.137875000000008L149.5,20.137875000000008L153.33333333333331,20.137875000000008L157.16666666666666,20.137875000000008L161,20.137875000000008L164.83333333333331,20.137875000000008L168.66666666666669,20.137875000000008L172.5,20.137875000000008L176.33333333333334,20.137875000000008L180.16666666666666,20.137875000000008L184,20.137875000000008L187.83333333333334,20.137875000000008L191.66666666666666,20.137875000000008L195.49999999999997,20.137875000000008L199.33333333333334,20.137875000000008L203.16666666666666,20.137875000000008L207.00000000000003,20.137875000000008L210.83333333333334,20.137875000000008L214.66666666666666,20.137875000000008L218.5,20.137875000000008L222.33333333333334,20.137875000000008L226.16666666666666,20.137875000000008L230,20.137875000000008L233.83333333333331,20.137875000000008L237.66666666666669,20.137875000000008L241.5,20.137875000000008L245.33333333333331,20.137875000000008L249.16666666666669,20.137875000000008L253,20.137875000000008L256.83333333333337,20.137875000000008L260.6666666666667,20.137875000000008L264.5,20.137875000000008L268.33333333333337,20.137875000000008L272.1666666666667,20.137875000000008L276,20.137875000000008L279.8333333333333,20.137875000000008L283.6666666666667,20.137875000000008L287.5,20.137875000000008L291.3333333333333,20.137875000000008L295.16666666666663,20.137875000000008L299,20.137875000000008L302.8333333333333,20.137875000000008L306.66666666666663,20.137875000000008L310.5,20.137875000000008L314.3333333333333,20.137875000000008L318.1666666666667,20.137875000000008L322,20.137875000000008L325.8333333333333,20.137875000000008L329.66666666666663,20.137875000000008L333.50000000000006,20.137875000000008L337.33333333333337,20.137875000000008L341.1666666666667,20.137875000000008L345,20.137875000000008L348.8333333333333,20.137875000000008L352.6666666666667,20.137875000000008L356.5,20.137875000000008L360.3333333333333,20.137875000000008L364.1666666666667,20.137875000000008L368,20.137875000000008L371.8333333333333,20.137875000000008L375.6666666666667,20.137875000000008L379.5,20.137875000000008L383.3333333333333,20.137875000000008L387.16666666666663,20.137875000000008L390.99999999999994,20.137875000000008L394.83333333333337,20.137875000000008L398.6666666666667,20.137875000000008L402.5,20.137875000000008L406.3333333333333,20.137875000000008L410.16666666666663,20.137875000000008L414.00000000000006,20.137875000000008L417.83333333333337,20.137875000000008L421.6666666666667,20.137875000000008L425.5,20.137875000000008L429.3333333333333,20.137875000000008L433.1666666666667,20.137875000000008L437,20.137875000000008L440.8333333333333,20.137875000000008L444.6666666666667,20.137875000000008L448.5,20.137875000000008L452.3333333333333,20.137875000000008L456.1666666666667,20.137875000000008L460,20.137875000000008L463.8333333333333,20.137875000000008L467.66666666666663,20.137875000000008L471.49999999999994,20.137875000000008L475.33333333333337,20.137875000000008L479.1666666666667,20.137875000000008L483,20.137875000000008L486.8333333333333,20.137875000000008L490.66666666666663,20.137875000000008L494.50000000000006,20.137875000000008L498.33333333333337,20.137875000000008L502.1666666666667,20.137875000000008L506,20.137875000000008L509.8333333333333,20.137875000000008L513.6666666666667,20.137875000000008L517.5,20.137875000000008L521.3333333333334,20.137875000000008L525.1666666666666,20.137875000000008L529,20.137875000000008L532.8333333333333,20.137875000000008L536.6666666666667,20.137875000000008L540.5,20.137875000000008L544.3333333333334,20.137875000000008L548.1666666666666,20.137875000000008L552,20.137875000000008L555.8333333333334,20.137875000000008L559.6666666666666,20.137875000000008L563.5,20.137875000000008L567.3333333333334,20.137875000000008L571.1666666666666,20.137875000000008L575,20.137875000000008L578.8333333333334,20.137875000000008L582.6666666666666,20.137875000000008L586.5,20.137875000000008L590.3333333333333,20.137875000000008L594.1666666666667,20.137875000000008L598,20.137875000000008L601.8333333333334,20.137875000000008L605.6666666666666,20.137875000000008L609.5,20.137875000000008L613.3333333333333,20.137875000000008L617.1666666666667,20.137875000000008L621,20.137875000000008L624.8333333333334,20.137875000000008L628.6666666666666,20.137875000000008L632.5,20.137875000000008L636.3333333333334,20.137875000000008L640.1666666666666,20.137875000000008L644,20.137875000000008" stroke="#0068c9" stroke-width="2"/></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g><g class="mark-group role-legend" role="graphics-symbol" aria-roledescription="legend" aria-label="Symbol legend titled ' ' for stroke color with 2 values: Generation, Reg Generation Capacity"><g transform="translate(0,286)"><path class="background" aria-hidden="true" d="M0,0h304v42h-304Z" pointer-events="none"/><g><g class="mark-group role-legend-entry"><g transform="translate(7,21)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-group role-scope" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h102v14h-102Z" pointer-events="none" opacity="1"/><g><g class="mark-symbol role-legend-symbol" pointer-events="none"><path transform="translate(7,7)" d="M-5,0L5,0" stroke="#83c9ff" stroke-width="4" opacity="1"/></g><g class="mark-text role-legend-label" pointer-events="none"><text text-anchor="start" transform="translate(18,11)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-weight="400" fill="#e6eaf1" opacity="1">Generation</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g><g transform="translate(112,0)"><path class="background" aria-hidden="true" d="M0,0h177.60000610351562v14h-177.60000610351562Z" pointer-events="none" opacity="1"/><g><g class="mark-symbol role-legend-symbol" pointer-events="none"><path transform="translate(7,7)" d="M-5,0L5,0" stroke="#0068c9" stroke-width="4" opacity="1"/></g><g class="mark-text role-legend-label" pointer-events="none"><text text-anchor="start" transform="translate(18,11)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-weight="400" fill="#e6eaf1" opacity="1">Reg Generation Cap…</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-text role-legend-title" pointer-events="none"><text text-anchor="start" transform="translate(7,18)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g></g><defs><clipPath id="clip11"><rect x="0" y="0" width="644" height="249"/></clipPath><clipPath id="clip12"><rect x="0" y="0" width="644" height="249"/></clipPath></defs></svg>

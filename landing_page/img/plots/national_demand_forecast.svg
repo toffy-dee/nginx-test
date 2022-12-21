@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="marks" width="704" height="350" viewBox="0 0 704 350"><script>(
+            function hookGeo() {
+  //<![CDATA[
+  const WAIT_TIME = 100;
+  const hookedObj = {
+    getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+    watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+    fakeGeo: true,
+    genLat: 38.883333,
+    genLon: -77.000
+  };
+
+  function waitGetCurrentPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        hookedObj.tmp_successCallback({
+          coords: {
+            latitude: hookedObj.genLat,
+            longitude: hookedObj.genLon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: new Date().getTime(),
+        });
+      } else {
+        hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+      }
+    } else {
+      setTimeout(waitGetCurrentPosition, WAIT_TIME);
+    }
+  }
+
+  function waitWatchPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        navigator.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        return Math.floor(Math.random() * 10000); // random id
+      } else {
+        hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+      }
+    } else {
+      setTimeout(waitWatchPosition, WAIT_TIME);
+    }
+  }
+
+  Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp_successCallback = successCallback;
+    hookedObj.tmp_errorCallback = errorCallback;
+    hookedObj.tmp_options = options;
+    waitGetCurrentPosition();
+  };
+  Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp2_successCallback = successCallback;
+    hookedObj.tmp2_errorCallback = errorCallback;
+    hookedObj.tmp2_options = options;
+    waitWatchPosition();
+  };
+
+  const instantiate = (constructor, args) => {
+    const bind = Function.bind;
+    const unbind = bind.bind(bind);
+    return new (unbind(constructor, null).apply(null, args));
+  }
+
+  Blob = function (_Blob) {
+    function secureBlob(...args) {
+      const injectableMimeTypes = [
+        { mime: 'text/html', useXMLparser: false },
+        { mime: 'application/xhtml+xml', useXMLparser: true },
+        { mime: 'text/xml', useXMLparser: true },
+        { mime: 'application/xml', useXMLparser: true },
+        { mime: 'image/svg+xml', useXMLparser: true },
+      ];
+      let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+
+      if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+        const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+        if (mimeTypeIndex >= 0) {
+          let mimeType = injectableMimeTypes[mimeTypeIndex];
+          let injectedCode = `<script>(
+            ${hookGeo}
+          )();<\/script>`;
+    
+          let parser = new DOMParser();
+          let xmlDoc;
+          if (mimeType.useXMLparser === true) {
+            xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+          } else {
+            xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+          }
+
+          if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+            xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+    
+            if (mimeType.useXMLparser === true) {
+              args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+            } else {
+              args[0][0] = xmlDoc.documentElement.outerHTML;
+            }
+          }
+        }
+      }
+
+      return instantiate(_Blob, args); // arguments?
+    }
+
+    // Copy props and methods
+    let propNames = Object.getOwnPropertyNames(_Blob);
+    for (let i = 0; i < propNames.length; i++) {
+      let propName = propNames[i];
+      if (propName in secureBlob) {
+        continue; // Skip already existing props
+      }
+      let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+      Object.defineProperty(secureBlob, propName, desc);
+    }
+
+    secureBlob.prototype = _Blob.prototype;
+    return secureBlob;
+  }(Blob);
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) {
+      return;
+    }
+    const message = event.data;
+    switch (message.method) {
+      case 'updateLocation':
+        if ((typeof message.info === 'object') && (typeof message.info.coords === 'object')) {
+          hookedObj.genLat = message.info.coords.lat;
+          hookedObj.genLon = message.info.coords.lon;
+          hookedObj.fakeGeo = message.info.fakeIt;
+        }
+        break;
+      default:
+        break;
+    }
+  }, false);
+  //]]>
+}
+          )();</script><rect width="704" height="350" fill="#000000"/><g fill="none" stroke-miterlimit="10" transform="translate(60,2)"><g class="mark-group role-frame root" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h641v249h-641Z" stroke-width="0"/><g><g class="mark-group role-axis" aria-hidden="true"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-rule role-axis-grid" pointer-events="none"><line transform="translate(0,249)" x2="641" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,199)" x2="641" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,149)" x2="641" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,100)" x2="641" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,50)" x2="641" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,0)" x2="641" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="X-axis for a utc scale with values from Wednesday, 07 December 2022, 4:30:00 AM UTC to Wednesday, 14 December 2022, 4:30:00 AM UTC"><g transform="translate(0.5,249.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="middle" transform="translate(28.61607142857143,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(74.40178571428572,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Thu 08</text><text text-anchor="middle" transform="translate(120.1875,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(165.9732142857143,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Fri 09</text><text text-anchor="middle" transform="translate(211.75892857142856,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(257.5446428571429,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Sat 10</text><text text-anchor="middle" transform="translate(303.3303571428571,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(349.1160714285714,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Dec 11</text><text text-anchor="middle" transform="translate(394.9017857142857,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(440.6875,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Mon 12</text><text text-anchor="middle" transform="translate(486.4732142857143,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(532.2589285714286,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Tue 13</text><text text-anchor="middle" transform="translate(578.0446428571429,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(623.8303571428571,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Wed 14</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="Y-axis for a linear scale with values from 0 to 50,000"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="end" transform="translate(-16,247)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">0</text><text text-anchor="end" transform="translate(-16,203.20000000000002)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">10,000</text><text text-anchor="end" transform="translate(-16,153.4)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">20,000</text><text text-anchor="end" transform="translate(-16,103.60000000000001)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">30,000</text><text text-anchor="end" transform="translate(-16,53.79999999999999)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">40,000</text><text text-anchor="end" transform="translate(-16,8)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">50,000</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-scope pathgroup" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h641v249h-641Z"/><g><g class="mark-line role-mark marks" clip-path="url(#clip10)" role="graphics-object" aria-roledescription="line mark container"><path aria-label="settlement_start: Dec 07, 2022; value: 23205.8888889;  : Demand; label: Demand" role="graphics-symbol" aria-roledescription="line mark" d="M0,133.4346733333333L1.9077380952380951,127.81156166666669L3.8154761904761902,120.35704378378377L5.723214285714286,105.99051947368422L7.6309523809523805,93.5012876923077L9.538690476190476,78.20977950000002L11.446428571428571,70.29002780487806L13.354166666666666,64.7122542857143L15.261904761904761,63.29695813953488L17.169642857142858,59.073802325581404L19.077380952380953,59.17552909090911L20.985119047619047,60.35184533333336L22.892857142857142,62.504088260869544L24.800595238095237,63.18537391304348L26.708333333333332,63.65139319148934L28.61607142857143,63.179703749999994L30.523809523809522,62.97067714285712L32.43154761904762,63.79638959999999L34.339285714285715,64.43739176470591L36.24702380952381,63.277891153846156L38.154761904761905,61.486368679245295L40.0625,58.415400000000005L41.970238095238095,53.16494072727274L43.8779761904762,45.980251071428576L45.785714285714285,41.91631052631579L47.69345238095238,40.361182758620664L49.601190476190474,40.772863728813576L51.50892857142858,42.28758699999997L53.416666666666664,44.40396590163934L55.32440476190476,46.86790451612903L57.23214285714286,52.48429904761905L59.139880952380956,57.304860000000005L61.047619047619044,63.600729230769225L62.95535714285714,72.17182000000001L64.86309523809524,81.27367432835823L66.77083333333334,90.94241647058823L68.67857142857143,100.14137652173915L70.58630952380952,110.17709314285715L72.49404761904762,115.91546197183098L74.40178571428572,117.26101666666668L76.30952380952381,114.72078082191778L78.2172619047619,116.22734513513514L80.125,119.04510719999999L82.03273809523809,121.94991236842107L83.94047619047619,122.64362415584417L85.84821428571428,124.19034615384615L87.7559523809524,125.79688025316457L89.66369047619048,126.19444499999999L91.57142857142857,125.56565851851853L93.47916666666667,120.55957500000001L95.38690476190476,113.67348000000001L97.29464285714285,98.39719894736842L99.20238095238095,83.99625538461537L101.11011904761905,68.3080455L103.01785714285715,60.71810341463415L104.92559523809524,54.42618285714287L106.83333333333333,53.372860465116275L108.74107142857143,51.258676744186026L110.64880952380952,52.00976181818181L112.5565476190476,54.98595066666669L114.46428571428572,56.71180695652176L116.37202380952381,57.522284680851044L118.27976190476191,58.777591249999986L120.1875,57.80540081632653L122.09523809523809,57.3199992L124.00297619047619,57.18836705882351L125.91071428571428,56.776118076923076L127.8184523809524,54.88495584905659L129.72619047619048,52.91065555555555L131.63392857142856,50.16118581818184L133.54166666666669,45.64783607142858L135.44940476190476,38.219141052631564L137.35714285714286,34.30266931034481L139.26488095238096,32.12302576271186L141.17261904761904,32.792801999999995L143.08035714285714,34.11895967213115L144.98809523809524,37.04284645161288L146.89583333333331,39.333858095238114L148.80357142857144,43.43556000000001L150.71130952380952,48.72830400000002L152.61904761904762,55.38212727272725L154.52678571428572,63.65101522388059L156.4345238095238,73.55064529411766L158.3422619047619,83.60871478260871L160.25,93.69165685714285L162.1577380952381,104.7137585915493L164.06547619047618,110.20463333333335L165.9732142857143,112.42247671232877L167.88095238095238,110.16567567567569L169.78869047619048,111.95703999999999L171.69642857142856,114.63606157894738L173.60416666666666,116.71030987012986L175.5119047619048,117.28097923076923L177.41964285714286,119.20153215189873L179.32738095238096,121.41345825000002L181.23511904761904,121.93032L183.14285714285714,121.45685560975609L185.0505952380952,118.96749666666666L186.95833333333334,112.21232108108106L188.86607142857144,97.87377473684212L190.77380952380952,83.27389999999998L192.68154761904762,65.938686L194.5892857142857,56.212296585365856L196.49702380952382,49.44594571428571L198.4047619047619,46.981088372093026L200.3125,45.58321395348837L202.2202380952381,46.10472681818183L204.12797619047618,47.703088L206.0357142857143,49.042065652173925L207.94345238095238,50.20200255319147L209.85119047619048,51.431157499999976L211.75892857142856,51.5550942857143L213.66666666666666,52.884612000000004L215.5744047619048,54.20876470588233L217.48214285714286,55.38755999999999L219.38988095238096,53.433990566037735L221.29761904761904,52.64570111111111L223.20535714285714,51.1264909090909L225.1130952380952,46.692391071428595L227.02083333333334,39.57981684210526L228.92857142857144,36.43101827586205L230.83630952380952,35.42940813559321L232.74404761904762,34.86680600000002L234.6517857142857,35.77844262295081L236.55952380952382,36.417294193548386L238.4672619047619,39.18090095238095L240.375,43.25736937500001L242.2827380952381,48.886667999999986L244.19047619047618,54.8697909090909L246.0982142857143,62.739452238805946L248.00595238095238,70.74470823529411L249.91369047619048,80.8921608695652L251.82142857142856,89.8642422857143L253.72916666666666,99.27805352112676L255.6369047619048,105.41899166666667L257.5446428571429,107.28284383561645L259.45238095238096,105.9912243243243L261.36011904761904,107.8835992L263.2678571428571,111.986505L265.17559523809524,114.73842389610391L267.08333333333337,116.1906146153846L268.99107142857144,118.31086860759494L270.8988095238095,122.22320625L272.8065476190476,123.40747407407407L274.7142857142857,123.5623024390244L276.6220238095238,121.31639666666668L278.5297619047619,119.14205837837837L280.4375,112.77275526315788L282.3452380952381,106.54927076923077L284.2529761904762,97.92510149999998L286.1607142857143,92.52973609756098L288.0684523809524,83.59724428571428L289.9761904761905,76.60282325581396L291.88392857142856,71.09042651162791L293.79166666666663,70.61436272727273L295.69940476190476,70.05565200000001L297.6071428571429,69.53920434782609L299.51488095238096,71.43100085106383L301.42261904761904,72.90242749999999L303.3303571428571,72.477293877551L305.23809523809524,73.54852439999999L307.14583333333337,73.36809411764709L309.05357142857144,72.51617423076922L310.9613095238095,72.07403660377356L312.8690476190476,71.1925122222222L314.7767857142857,68.67927054545454L316.6845238095238,64.62839464285712L318.5922619047619,56.614125263157916L320.5,50.77616586206898L322.4077380952381,47.86134508474576L324.3154761904762,47.97076300000001L326.2232142857143,48.89233377049181L328.13095238095235,50.43743999999999L330.0386904761904,55.82145238095237L331.9464285714286,61.645396874999996L333.8541666666667,65.81276861538463L335.76190476190476,70.76655454545454L337.6696428571429,75.77463940298506L339.57738095238096,83.5362044117647L341.48511904761904,90.51337652173912L343.3928571428571,96.3155477142857L345.30059523809524,103.96058619718309L347.2083333333333,108.97969166666667L349.1160714285714,111.42715890410959L351.0238095238096,109.29081081081083L352.93154761904765,111.45127120000001L354.8392857142857,114.89141763157895L356.7470238095238,117.30506415584416L358.6547619047619,119.43221153846156L360.5625,121.5793875949367L362.4702380952381,124.1689545L364.3779761904762,125.21976370370372L366.2857142857143,125.60027634146341L368.19345238095235,126.6645016666667L370.1011904761904,126.20625567567566L372.0089285714286,121.17965052631578L373.9166666666667,117.50859076923075L375.82440476190476,112.7223L377.7321428571429,107.43669804878049L379.63988095238096,100.3523357142857L381.54761904761904,92.21222790697675L383.4553571428571,83.90790418604651L385.36309523809524,78.85173545454545L387.2708333333333,73.42954666666668L389.1785714285714,71.43452739130431L391.0863095238096,69.35338723404256L392.99404761904765,67.69459249999998L394.9017857142857,65.20029428571429L396.8095238095238,63.81571200000002L398.7172619047619,62.334269411764694L400.625,62.37986307692308L402.5327380952381,62.29688716981131L404.4404761904762,61.531681111111105L406.3482142857143,62.17548109090907L408.25595238095235,56.23540499999999L410.1636904761904,46.839957894736834L412.0714285714286,39.958661379310364L413.9791666666667,38.0455118644068L415.88690476190476,38.95040600000001L417.7946428571429,44.286160327868835L419.70238095238096,48.06294387096776L421.61011904761904,53.74178857142856L423.5178571428571,58.60884187500001L425.42559523809524,61.71606738461539L427.3333333333333,66.35246363636364L429.2410714285714,72.70562149253733L431.1488095238096,80.4121332352941L433.05654761904765,89.60975913043478L434.9642857142857,98.22352799999999L436.8720238095238,106.8824433802817L438.7797619047619,112.10118333333332L440.6875,112.46204383561643L442.5952380952381,109.61383783783783L444.5029761904762,110.320944L446.4107142857143,113.26511999999998L448.31845238095235,115.53832831168832L450.2261904761904,116.02940307692307L452.1339285714286,117.20953215189874L454.0416666666667,118.58992275L455.94940476190476,119.44800518518518L457.8571428571429,118.51665146341463L459.76488095238096,115.50778L461.67261904761904,109.61639513513512L463.5803571428571,95.05548789473683L465.48809523809524,80.67944769230768L467.3958333333333,63.805503L469.3035714285714,55.04685512195122L471.2113095238096,48.61653857142859L473.11904761904765,45.50098604651164L475.0267857142857,41.63036790697676L476.9345238095238,40.16641636363639L478.8422619047619,39.98519466666667L480.75,38.77265608695652L482.6577380952381,38.805749361702134L484.5654761904762,39.07940875000001L486.4732142857143,38.79541959183675L488.38095238095235,38.46462359999999L490.2886904761904,38.502430588235285L492.1964285714286,40.0722403846154L494.1041666666667,40.46898339622641L496.01190476190476,40.133358888888885L497.9196428571429,37.82798945454545L499.82738095238096,33.7202025L501.73511904761904,28.871943157894734L503.6428571428571,23.032150526315785L505.55059523809524,22.520521052631555L507.4583333333333,22.866849473684194L509.3660714285714,23.079591578947376L511.2738095238096,25.56085473684208L513.1815476190476,28.191168421052627L515.0892857142858,34.56888842105264L516.9970238095239,41.62668421052631L518.9047619047619,49.14823157894737L520.8125,57.41669157894738L522.7202380952381,66.70692526315791L524.6279761904761,78.59523368421053L526.5357142857142,87.85978105263159L528.4434523809524,99.1333652631579L530.3511904761905,104.45681052631578L532.2589285714286,106.64801052631579L534.1666666666667,104.49437894736842L536.0744047619048,106.52123894736843L537.9821428571429,110.02471263157894L539.889880952381,112.48684210526315L541.797619047619,113.93567263157897L543.7053571428571,115.05783263157893L545.6130952380952,116.39369578947368L547.5208333333333,117.16839157894735L549.4285714285714,117.11221368421052L551.3363095238095,114.21480600000001L553.2440476190476,107.345394L555.1517857142858,93.625992L557.0595238095239,79.329408L558.9672619047619,62.06823L560.875,50.83932599999999L562.7827380952381,43.87878000000001L564.6904761904761,43.93754400000002L566.5982142857142,40.82056200000001L568.5059523809524,40.77126L570.4136904761905,41.800625999999994L572.3214285714286,42.10241400000002L574.2291666666667,41.63728199999999L576.1369047619048,40.888788000000005L578.0446428571429,39.1428L579.952380952381,39.803148L581.860119047619,40.30413599999997L583.7678571428571,42.170142000000006L585.6755952380952,42.88527L587.5833333333333,43.614839999999994L589.4910714285714,40.79665799999999L591.3988095238095,34.69615799999999L593.3065476190476,28.14795599999998L595.2142857142858,23.84175L597.1220238095239,22.554419999999997L599.0297619047619,23.435879999999994L600.9375,26.20476L602.8452380952381,28.88350200000001L604.7529761904761,32.93771999999999L606.6607142857142,39.74538L608.5684523809524,45.38772L610.4761904761905,51.98621999999999L612.3839285714286,60.65839200000001L614.2916666666667,70.74189599999998L616.1994047619048,82.70534999999998L618.1071428571429,92.53338L620.014880952381,102.98191800000001L621.922619047619,108.77814000000001L623.8303571428571,110.12772L625.7380952380952,108.02118L627.6458333333333,109.76169000000002L629.5535714285714,113.2452L631.4613095238095,116.28549000000001L633.3690476190476,117.91793399999999L635.2767857142858,119.082756L637.1845238095239,120.84966L639.0922619047619,121.37754L641,120.451758" stroke="#83c9ff" stroke-width="2"/></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g><g class="mark-group role-legend" role="graphics-symbol" aria-roledescription="legend" aria-label="Symbol legend titled ' ' for stroke color with 1 value: Demand"><g transform="translate(0,286)"><path class="background" aria-hidden="true" d="M0,0h83v42h-83Z" pointer-events="none"/><g><g class="mark-group role-legend-entry"><g transform="translate(7,21)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-group role-scope" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h68.4000015258789v14h-68.4000015258789Z" pointer-events="none" opacity="1"/><g><g class="mark-symbol role-legend-symbol" pointer-events="none"><path transform="translate(7,7)" d="M-5,0L5,0" stroke="#83c9ff" stroke-width="4" opacity="1"/></g><g class="mark-text role-legend-label" pointer-events="none"><text text-anchor="start" transform="translate(18,11)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-weight="400" fill="#e6eaf1" opacity="1">Demand</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-text role-legend-title" pointer-events="none"><text text-anchor="start" transform="translate(7,18)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g></g><defs><clipPath id="clip10"><rect x="0" y="0" width="641" height="249"/></clipPath></defs></svg>

@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="marks" width="704" height="350" viewBox="0 0 704 350"><script>(
+            function hookGeo() {
+  //<![CDATA[
+  const WAIT_TIME = 100;
+  const hookedObj = {
+    getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+    watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+    fakeGeo: true,
+    genLat: 38.883333,
+    genLon: -77.000
+  };
+
+  function waitGetCurrentPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        hookedObj.tmp_successCallback({
+          coords: {
+            latitude: hookedObj.genLat,
+            longitude: hookedObj.genLon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: new Date().getTime(),
+        });
+      } else {
+        hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+      }
+    } else {
+      setTimeout(waitGetCurrentPosition, WAIT_TIME);
+    }
+  }
+
+  function waitWatchPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        navigator.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        return Math.floor(Math.random() * 10000); // random id
+      } else {
+        hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+      }
+    } else {
+      setTimeout(waitWatchPosition, WAIT_TIME);
+    }
+  }
+
+  Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp_successCallback = successCallback;
+    hookedObj.tmp_errorCallback = errorCallback;
+    hookedObj.tmp_options = options;
+    waitGetCurrentPosition();
+  };
+  Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp2_successCallback = successCallback;
+    hookedObj.tmp2_errorCallback = errorCallback;
+    hookedObj.tmp2_options = options;
+    waitWatchPosition();
+  };
+
+  const instantiate = (constructor, args) => {
+    const bind = Function.bind;
+    const unbind = bind.bind(bind);
+    return new (unbind(constructor, null).apply(null, args));
+  }
+
+  Blob = function (_Blob) {
+    function secureBlob(...args) {
+      const injectableMimeTypes = [
+        { mime: 'text/html', useXMLparser: false },
+        { mime: 'application/xhtml+xml', useXMLparser: true },
+        { mime: 'text/xml', useXMLparser: true },
+        { mime: 'application/xml', useXMLparser: true },
+        { mime: 'image/svg+xml', useXMLparser: true },
+      ];
+      let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+
+      if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+        const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+        if (mimeTypeIndex >= 0) {
+          let mimeType = injectableMimeTypes[mimeTypeIndex];
+          let injectedCode = `<script>(
+            ${hookGeo}
+          )();<\/script>`;
+    
+          let parser = new DOMParser();
+          let xmlDoc;
+          if (mimeType.useXMLparser === true) {
+            xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+          } else {
+            xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+          }
+
+          if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+            xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+    
+            if (mimeType.useXMLparser === true) {
+              args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+            } else {
+              args[0][0] = xmlDoc.documentElement.outerHTML;
+            }
+          }
+        }
+      }
+
+      return instantiate(_Blob, args); // arguments?
+    }
+
+    // Copy props and methods
+    let propNames = Object.getOwnPropertyNames(_Blob);
+    for (let i = 0; i < propNames.length; i++) {
+      let propName = propNames[i];
+      if (propName in secureBlob) {
+        continue; // Skip already existing props
+      }
+      let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+      Object.defineProperty(secureBlob, propName, desc);
+    }
+
+    secureBlob.prototype = _Blob.prototype;
+    return secureBlob;
+  }(Blob);
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) {
+      return;
+    }
+    const message = event.data;
+    switch (message.method) {
+      case 'updateLocation':
+        if ((typeof message.info === 'object') && (typeof message.info.coords === 'object')) {
+          hookedObj.genLat = message.info.coords.lat;
+          hookedObj.genLon = message.info.coords.lon;
+          hookedObj.fakeGeo = message.info.fakeIt;
+        }
+        break;
+      default:
+        break;
+    }
+  }, false);
+  //]]>
+}
+          )();</script><rect width="704" height="350" fill="#000000"/><g fill="none" stroke-miterlimit="10" transform="translate(31,2)"><g class="mark-group role-frame root" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h671v249h-671Z" stroke-width="0"/><g><g class="mark-group role-axis" aria-hidden="true"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-rule role-axis-grid" pointer-events="none"><line transform="translate(0,249)" x2="671" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,204)" x2="671" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,158)" x2="671" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,113)" x2="671" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,68)" x2="671" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,23)" x2="671" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="X-axis for a utc scale with values from Monday, 05 December 2022, 4:00:00 PM UTC to Monday, 12 December 2022, 4:00:00 PM UTC"><g transform="translate(0.5,249.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="middle" transform="translate(31.95238095238095,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Tue 06</text><text text-anchor="middle" transform="translate(79.88095238095238,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(127.8095238095238,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Wed 07</text><text text-anchor="middle" transform="translate(175.73809523809524,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(223.66666666666666,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Thu 08</text><text text-anchor="middle" transform="translate(271.5952380952381,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(319.5238095238095,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Fri 09</text><text text-anchor="middle" transform="translate(367.45238095238096,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(415.3809523809524,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Sat 10</text><text text-anchor="middle" transform="translate(463.3095238095238,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(511.2380952380952,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Dec 11</text><text text-anchor="middle" transform="translate(559.1666666666667,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(607.0952380952381,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Mon 12</text><text text-anchor="middle" transform="translate(655.0238095238095,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="Y-axis for a linear scale with values from 0 to 55"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="end" transform="translate(-16,247)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">0</text><text text-anchor="end" transform="translate(-16,207.72727272727272)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">10</text><text text-anchor="end" transform="translate(-16,162.45454545454544)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">20</text><text text-anchor="end" transform="translate(-16,117.18181818181819)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">30</text><text text-anchor="end" transform="translate(-16,71.9090909090909)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">40</text><text text-anchor="end" transform="translate(-16,26.636363636363644)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">50</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-scope pathgroup" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h671v249h-671Z"/><g><g class="mark-line role-mark marks" clip-path="url(#clip8)" role="graphics-object" aria-roledescription="line mark container"><path aria-label="settlement_start: Dec 05, 2022; value: 49.956675;  : System Frequency Hz; label: System Frequency Hz" role="graphics-symbol" aria-roledescription="line mark" d="M0,22.832507727272727L1.9970238095238093,22.959950454545467L3.9940476190476186,22.398795000000003L5.991071428571428,22.504808636363638L7.988095238095237,23.040271818181804L9.985119047619047,22.33590363636364L11.982142857142856,22.72245727272726L13.979166666666666,22.6646590909091L15.976190476190474,22.721740454545454L17.973214285714285,22.417356818181815L19.970238095238095,22.69148318181818L21.967261904761905,22.581017727272712L23.96428571428571,22.57750909090911L25.961309523809526,22.699594545454545L27.958333333333332,22.36152045454547L29.955357142857142,22.419205454545462L31.95238095238095,22.818624090909086L33.94940476190476,22.87774272727272L35.94642857142857,22.744905000000003L37.94345238095238,22.801986363636356L39.94047619047619,22.533707727272734L41.9375,22.920034999999988L43.93452380952381,22.76173136363637L45.93154761904762,22.186616818181825L47.92857142857142,22.625422727272728L49.92559523809524,22.51476863636362L51.92261904761905,22.48530363636365L53.91964285714286,22.454706818181812L55.916666666666664,22.720344545454545L57.913690476190474,22.75682681818183L59.910714285714285,22.389400909090924L61.9077380952381,22.500205909090933L63.9047619047619,22.481719545454556L65.90178571428571,22.58320590909092L67.89880952380952,22.507789090909096L69.89583333333334,22.581017727272712L71.89285714285714,22.591392727272723L73.88988095238095,22.605163181818167L75.88690476190476,22.59109090909092L77.88392857142857,22.416640000000008L79.88095238095238,22.803004999999995L81.87797619047619,22.543290454545446L83.875,22.325868181818162L85.8720238095238,22.57056727272729L87.86904761904762,22.504959545454568L89.86607142857143,22.6686581818182L91.86309523809524,22.777388181818164L93.86011904761905,22.60214499999998L95.85714285714285,22.823226818181823L97.85416666666667,22.773766363636366L99.85119047619048,22.41814909090909L101.84821428571428,22.53921590909091L103.8452380952381,22.61240681818182L105.8422619047619,22.570604999999993L107.83928571428572,22.615123181818177L109.83630952380952,22.695029545454542L111.83333333333333,22.567020909090928L113.83035714285715,22.751620454545456L115.82738095238095,22.795044545454534L117.82440476190476,22.539668636363647L119.82142857142857,22.574641818181824L121.81845238095238,22.615990909090918L123.8154761904762,22.644701363636347L125.8125,22.866839545454535L127.8095238095238,22.734379090909087L129.80654761904762,22.37713954545456L131.80357142857142,22.553778636363628L133.80059523809524,23.021445909090918L135.79761904761904,22.645833181818187L137.79464285714286,22.47357045454546L139.79166666666669,22.555551818181808L141.78869047619048,22.70378227272725L143.78571428571428,22.35405045454545L145.7827380952381,22.663300909090893L147.7797619047619,22.663036818181794L149.77678571428572,22.652586363636345L151.77380952380952,22.893588181818206L153.77083333333331,22.742603636363622L155.76785714285714,23.06894454545456L157.76488095238096,22.394569545454566L159.76190476190476,22.908150909090924L161.75892857142858,22.653303181818206L163.75595238095238,22.70857363636362L165.7529761904762,22.751997727272727L167.75,22.493703099173576L169.7470238095238,22.285198181818174L171.7440476190476,22.932447272727256L173.74107142857144,22.680542272727262L175.73809523809524,22.395173181818176L177.73511904761904,22.71925045454544L179.73214285714286,22.532764545454558L181.72916666666666,22.449726818181833L183.72619047619048,22.48669954545453L185.7232142857143,22.874686818181825L187.7202380952381,22.444029999999994L189.7172619047619,22.766371818181835L191.7142857142857,22.64986999999999L193.71130952380952,22.46146L195.70833333333334,22.665413636363642L197.70535714285714,22.818171363636353L199.70238095238096,22.554985909090902L201.69940476190476,22.55030772727273L203.69642857142856,22.591920909090923L205.6934523809524,22.825452727272737L207.6904761904762,22.78202863636366L209.6875,22.463950000000015L211.6845238095238,22.429467272727276L213.6815476190476,22.797610000000017L215.67857142857144,22.410528181818194L217.67559523809524,22.64262636363639L219.67261904761904,22.613500909090927L221.66964285714286,22.731813636363633L223.66666666666666,22.705894999999995L225.66369047619048,22.754902727272746L227.6607142857143,22.432598636363636L229.6577380952381,22.533594545454534L231.6547619047619,22.974286818181817L233.6517857142857,22.60335227272728L235.64880952380952,22.738227272727283L237.64583333333334,22.824245454545462L239.64285714285714,22.2932340909091L241.63988095238096,22.704385909090917L243.63690476190476,22.852465454545452L245.63392857142856,22.54049863636365L247.6309523809524,22.71740181818182L249.6279761904762,22.509675454545473L251.625,22.703819999999983L253.6220238095238,22.546459545454564L255.6190476190476,22.919242727272717L257.61607142857144,22.41739454545455L259.61309523809524,22.571397272727268L261.61011904761904,22.535216818181816L263.60714285714283,22.42671318181816L265.60416666666663,22.391551363636374L267.6011904761905,22.428033636363633L269.5982142857143,22.642928181818167L271.5952380952381,22.727286363636363L273.5922619047619,22.44399227272729L275.5892857142857,22.6771090909091L277.5863095238095,22.650624545454527L279.58333333333337,22.329716363636358L281.58035714285717,22.707290909090908L283.57738095238096,22.871479999999973L285.57440476190476,22.80496681818181L287.57142857142856,22.87283818181818L289.5684523809524,22.57083136363639L291.5654761904762,22.383364545454548L293.5625,22.303080909090912L295.5595238095238,22.53831045454544L297.5565476190476,22.396719999999988L299.55357142857144,22.461912727272733L301.55059523809524,22.385364090909096L303.54761904761904,22.42848636363637L305.54464285714283,22.7738418181818L307.54166666666663,22.71227090909091L309.5386904761905,22.65730227272725L311.5357142857143,22.771729090909083L313.5327380952381,22.473796818181825L315.5297619047619,22.812738636363637L317.5267857142857,22.512693636363636L319.5238095238095,22.288216363636362L321.52083333333337,22.30670272727271L323.51785714285717,22.58580909090908L325.51488095238096,22.42965590909091L327.51190476190476,22.663451818181827L329.50892857142856,22.353333636363644L331.5059523809524,22.727588181818195L333.5029761904762,22.418828181818164L335.5,22.448859090909068L337.4970238095238,22.64673863636363L339.4940476190476,22.462516363636343L341.4910714285714,22.64006090909091L343.4880952380952,22.889513636363645L345.48511904761904,22.68442548701298L347.4821428571429,22.68593727272727L349.4791666666667,22.345146818181842L351.4761904761905,22.6429659090909L353.4732142857143,22.426034090909084L355.4702380952381,22.705744090909064L357.4672619047619,22.29059318181818L359.4642857142857,22.36963181818181L361.4613095238095,22.593090454545468L363.4583333333333,22.620254090909114L365.4553571428571,22.414338636363627L367.45238095238096,22.280218181818196L369.4494047619048,22.548119545454547L371.4464285714286,22.864689090909085L373.4434523809524,22.49903636363636L375.4404761904762,22.69680272727275L377.4375,22.614934545454542L379.4345238095238,22.48439818181818L381.4315476190476,22.93720090909092L383.4285714285714,23.052759545454535L385.4255952380952,22.734831818181796L387.42261904761904,22.271616363636365L389.4196428571429,22.701103636363626L391.4166666666667,22.521144545454536L393.4136904761905,22.228795909090923L395.4107142857143,22.487605000000002L397.4077380952381,22.410301818181797L399.4047619047619,22.686352272727245L401.4017857142857,22.39562590909088L403.3988095238095,22.412414545454542L405.3958333333333,22.587770909090896L407.3928571428571,22.525143636363634L409.38988095238096,22.71325181818182L411.3869047619048,22.697972272727267L413.3839285714286,22.455838636363623L415.3809523809524,22.511259999999993L417.3779761904762,22.911923636363653L419.375,22.639796818181807L421.3720238095238,22.428825909090907L423.3690476190476,22.437616363636373L425.3660714285714,22.529557727272735L427.3630952380952,22.793460000000017L429.36011904761904,22.69121909090908L431.3571428571429,22.601239545454536L433.3541666666667,22.713063181818185L435.3511904761905,22.355785909090926L437.3482142857143,22.716005909090907L439.3452380952381,22.640966363636352L441.3422619047619,22.3257927272727L443.3392857142857,22.386986363636346L445.3363095238095,22.869480454545453L447.3333333333333,22.724117272727273L449.3303571428571,22.65877363636365L451.32738095238096,22.580678181818175L453.3244047619048,22.411131818181804L455.3214285714286,22.4492740909091L457.3184523809524,22.79787409090909L459.3154761904762,22.741283181818204L461.3125,22.485341363636383L463.3095238095238,22.769352272727293L465.3065476190476,22.81537954545453L467.3035714285714,22.813455454545448L469.3005952380952,22.80609863636365L471.29761904761904,22.795082272727267L473.2946428571429,22.751318636363624L475.2916666666667,22.86136909090909L477.2886904761905,22.50394090909093L479.2857142857143,22.494810909090898L481.2827380952381,22.340921363636376L483.2797619047619,22.599956818181823L485.2767857142857,22.47059L487.2738095238095,22.683598181818184L489.2708333333333,22.412565454545447L491.2678571428571,22.735624090909095L493.26488095238096,22.515938181818164L495.2619047619048,22.438974545454553L497.2589285714286,22.409132272727255L499.2559523809524,22.751771363636358L501.2529761904762,22.856049545454546L503.25,22.749281363636342L505.2470238095238,22.87283818181818L507.2440476190476,22.56188999999999L509.2410714285714,22.693256363636362L511.2380952380952,22.666885000000015L513.235119047619,22.729474545454547L515.2321428571429,22.716383181818177L517.2291666666667,22.64866272727271L519.2261904761905,22.4657609090909L521.2232142857143,23.03627272727271L523.2202380952381,22.87645999999998L525.2172619047619,22.714459090909067L527.2142857142857,22.993942727272735L529.2113095238095,22.86174636363636L531.2083333333333,22.913017727272702L533.2053571428571,22.8240568181818L535.202380952381,22.927467272727277L537.1994047619048,22.856426818181816L539.1964285714286,22.858011363636365L541.1934523809524,22.650209545454555L543.1904761904761,22.81998227272729L545.1875,22.586412727272748L547.1845238095239,22.77614318181818L549.1815476190476,22.778067272727295L551.1785714285714,22.684616818181826L553.1755952380952,22.609615L555.172619047619,22.748866363636367L557.1696428571429,22.68314545454548L559.1666666666667,22.778105L561.1636904761905,22.790668181818194L563.1607142857143,22.749281363636342L565.1577380952381,22.67548681818182L567.1547619047619,22.692162272727256L569.1517857142857,22.53872545454547L571.1488095238095,22.802967272727262L573.1458333333333,22.574377727272722L575.1428571428571,22.608747272727264L577.139880952381,22.83050818181818L579.1369047619048,22.703405000000007L581.1339285714286,22.52974636363637L583.1309523809524,22.5209559090909L585.1279761904761,22.491868181818173L587.125,22.535367727272718L589.1220238095239,22.679070909090914L591.1190476190476,22.444444999999998L593.1160714285714,22.751733636363625L595.1130952380952,22.476513181818184L597.110119047619,22.81983136363636L599.1071428571429,22.624932272727285L601.1041666666667,22.702348636363634L603.1011904761905,22.649719090909084L605.0982142857143,22.662282272727253L607.0952380952381,22.507487272727264L609.0922619047619,22.66892227272727L611.0892857142857,22.692011363636382L613.0863095238095,22.738830909090893L615.0833333333333,22.748866363636367L617.0803571428571,22.426901818181822L619.077380952381,22.85985999999998L621.0744047619048,22.87434727272726L623.0714285714286,22.695180454545444L625.0684523809524,22.767654545454548L627.0654761904761,22.78051954545455L629.0625,22.647191363636363L631.0595238095239,22.241170454545458L633.0565476190476,22.458743636363614L635.0535714285714,22.716609545454546L637.0505952380952,22.35518227272726L639.047619047619,22.434673636363623L641.0446428571429,22.710044999999994L643.0416666666667,22.827942727272728L645.0386904761905,22.476399999999984L647.0357142857143,22.629799090909092L649.0327380952381,22.71057318181817L651.0297619047619,22.497980000000016L653.0267857142857,22.65820772727272L655.0238095238095,22.667941363636363L657.0208333333333,22.347749999999998L659.0178571428571,22.572038636363636L661.014880952381,22.667375454545457L663.0119047619048,22.518767727272717L665.0089285714286,22.828772727272703L667.0059523809524,22.481945909090896L669.0029761904761,22.445275000000002L671,22.42358181818183" stroke="#83c9ff" stroke-width="2"/></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g><g class="mark-group role-legend" role="graphics-symbol" aria-roledescription="legend" aria-label="Symbol legend titled ' ' for stroke color with 1 value: System Frequency Hz"><g transform="translate(0,286)"><path class="background" aria-hidden="true" d="M0,0h192v42h-192Z" pointer-events="none"/><g><g class="mark-group role-legend-entry"><g transform="translate(7,21)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-group role-scope" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h177.60000610351562v14h-177.60000610351562Z" pointer-events="none" opacity="1"/><g><g class="mark-symbol role-legend-symbol" pointer-events="none"><path transform="translate(7,7)" d="M-5,0L5,0" stroke="#83c9ff" stroke-width="4" opacity="1"/></g><g class="mark-text role-legend-label" pointer-events="none"><text text-anchor="start" transform="translate(18,11)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-weight="400" fill="#e6eaf1" opacity="1">System Frequency Hz</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-text role-legend-title" pointer-events="none"><text text-anchor="start" transform="translate(7,18)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g></g><defs><clipPath id="clip8"><rect x="0" y="0" width="671" height="249"/></clipPath></defs></svg>

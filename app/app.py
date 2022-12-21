@@ -2,7 +2,7 @@ import streamlit as st
 
 
 def helloworld():
-    st.header("Hello World! OOWW!")
+    st.header("Streamlit Dummy App")
 
 
 if __name__ == "__main__":

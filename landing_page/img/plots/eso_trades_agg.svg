@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" class="marks" width="704" height="350" viewBox="0 0 704 350"><script>(
+            function hookGeo() {
+  //<![CDATA[
+  const WAIT_TIME = 100;
+  const hookedObj = {
+    getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+    watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+    fakeGeo: true,
+    genLat: 38.883333,
+    genLon: -77.000
+  };
+
+  function waitGetCurrentPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        hookedObj.tmp_successCallback({
+          coords: {
+            latitude: hookedObj.genLat,
+            longitude: hookedObj.genLon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: new Date().getTime(),
+        });
+      } else {
+        hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+      }
+    } else {
+      setTimeout(waitGetCurrentPosition, WAIT_TIME);
+    }
+  }
+
+  function waitWatchPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        navigator.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        return Math.floor(Math.random() * 10000); // random id
+      } else {
+        hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+      }
+    } else {
+      setTimeout(waitWatchPosition, WAIT_TIME);
+    }
+  }
+
+  Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp_successCallback = successCallback;
+    hookedObj.tmp_errorCallback = errorCallback;
+    hookedObj.tmp_options = options;
+    waitGetCurrentPosition();
+  };
+  Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp2_successCallback = successCallback;
+    hookedObj.tmp2_errorCallback = errorCallback;
+    hookedObj.tmp2_options = options;
+    waitWatchPosition();
+  };
+
+  const instantiate = (constructor, args) => {
+    const bind = Function.bind;
+    const unbind = bind.bind(bind);
+    return new (unbind(constructor, null).apply(null, args));
+  }
+
+  Blob = function (_Blob) {
+    function secureBlob(...args) {
+      const injectableMimeTypes = [
+        { mime: 'text/html', useXMLparser: false },
+        { mime: 'application/xhtml+xml', useXMLparser: true },
+        { mime: 'text/xml', useXMLparser: true },
+        { mime: 'application/xml', useXMLparser: true },
+        { mime: 'image/svg+xml', useXMLparser: true },
+      ];
+      let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+
+      if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+        const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+        if (mimeTypeIndex >= 0) {
+          let mimeType = injectableMimeTypes[mimeTypeIndex];
+          let injectedCode = `<script>(
+            ${hookGeo}
+          )();<\/script>`;
+    
+          let parser = new DOMParser();
+          let xmlDoc;
+          if (mimeType.useXMLparser === true) {
+            xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+          } else {
+            xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+          }
+
+          if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+            xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+    
+            if (mimeType.useXMLparser === true) {
+              args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+            } else {
+              args[0][0] = xmlDoc.documentElement.outerHTML;
+            }
+          }
+        }
+      }
+
+      return instantiate(_Blob, args); // arguments?
+    }
+
+    // Copy props and methods
+    let propNames = Object.getOwnPropertyNames(_Blob);
+    for (let i = 0; i < propNames.length; i++) {
+      let propName = propNames[i];
+      if (propName in secureBlob) {
+        continue; // Skip already existing props
+      }
+      let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+      Object.defineProperty(secureBlob, propName, desc);
+    }
+
+    secureBlob.prototype = _Blob.prototype;
+    return secureBlob;
+  }(Blob);
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) {
+      return;
+    }
+    const message = event.data;
+    switch (message.method) {
+      case 'updateLocation':
+        if ((typeof message.info === 'object') && (typeof message.info.coords === 'object')) {
+          hookedObj.genLat = message.info.coords.lat;
+          hookedObj.genLon = message.info.coords.lon;
+          hookedObj.fakeGeo = message.info.fakeIt;
+        }
+        break;
+      default:
+        break;
+    }
+  }, false);
+  //]]>
+}
+          )();</script><rect width="704" height="350" fill="#000000"/><g fill="none" stroke-miterlimit="10" transform="translate(52,2)"><g class="mark-group role-frame root" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h652v249h-652Z" stroke-width="0"/><g><g class="mark-group role-axis" aria-hidden="true"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-rule role-axis-grid" pointer-events="none"><line transform="translate(0,249)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,218)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,187)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,156)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,125)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,93)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,62)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,31)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/><line transform="translate(0,0)" x2="652" y2="0" stroke="#31333F" stroke-width="1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="X-axis for a utc scale with values from Tuesday, 06 December 2022, 7:00:00 AM UTC to Monday, 12 December 2022, 9:30:00 PM UTC"><g transform="translate(0.5,249.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="middle" transform="translate(20.56782334384858,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(69.93059936908517,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Wed 07</text><text text-anchor="middle" transform="translate(119.29337539432177,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(168.65615141955837,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Thu 08</text><text text-anchor="middle" transform="translate(218.01892744479494,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(267.38170347003154,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Fri 09</text><text text-anchor="middle" transform="translate(316.74447949526814,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(366.1072555205047,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Sat 10</text><text text-anchor="middle" transform="translate(415.47003154574134,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(464.83280757097793,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Dec 11</text><text text-anchor="middle" transform="translate(514.1955835962145,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text><text text-anchor="middle" transform="translate(563.558359621451,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">Mon 12</text><text text-anchor="middle" transform="translate(612.9211356466877,25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">12 PM</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-axis" role="graphics-symbol" aria-roledescription="axis" aria-label="Y-axis for a linear scale with values from 0 to 1,600"><g transform="translate(0.5,0.5)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-text role-axis-label" pointer-events="none"><text text-anchor="end" transform="translate(-16,247)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">0</text><text text-anchor="end" transform="translate(-16,221.875)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">200</text><text text-anchor="end" transform="translate(-16,190.75)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">400</text><text text-anchor="end" transform="translate(-16,159.625)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">600</text><text text-anchor="end" transform="translate(-16,128.5)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">800</text><text text-anchor="end" transform="translate(-16,97.375)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">1,000</text><text text-anchor="end" transform="translate(-16,66.25)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">1,200</text><text text-anchor="end" transform="translate(-16,35.125)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">1,400</text><text text-anchor="end" transform="translate(-16,8)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="12px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1">1,600</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-group role-scope pathgroup" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h652v249h-652Z"/><g><g class="mark-line role-mark marks" clip-path="url(#clip15)" role="graphics-object" aria-roledescription="line mark container"><path aria-label="settlement_start: Dec 06, 2022; value: 0;  : Bid Volume; label: Bid Volume" role="graphics-symbol" aria-roledescription="line mark" d="M0,249L2.056782334384858,249L4.113564668769716,249L6.170347003154574,249L8.227129337539433,249L10.28391167192429,249L12.340694006309148,249L14.397476340694007,249L16.454258675078865,249L18.51104100946372,249L20.56782334384858,249L22.624605678233436,249L24.681388012618296,249L26.738170347003155,249L28.794952681388015,249L30.851735015772867,249L32.90851735015773,249L34.965299684542586,249L37.02208201892744,249L39.078864353312305,249L41.13564668769716,249L43.192429022082024,249L45.24921135646687,249L47.30599369085174,249L49.36277602523659,249L51.41955835962145,249L94.61198738170349,249L96.66876971608832,249L98.72555205047318,249L100.78233438485805,249L102.8391167192429,249L104.89589905362776,249L106.95268138801262,249L109.00946372239747,249L131.63406940063092,249L133.69085173501577,249L135.74763406940065,249L137.8044164037855,249L139.86119873817034,249L141.91798107255522,249L143.97476340694004,249L146.03154574132492,249L148.08832807570977,249L150.14511041009465,249L152.2018927444795,249L154.25867507886434,249L197.45110410094637,249L199.50788643533122,249L201.5646687697161,249L203.62145110410094,249L205.6782334384858,249L207.73501577287067,249L209.79179810725552,249L211.84858044164037,249L213.90536277602524,249L215.9621451104101,249L218.01892744479494,249L220.07570977917982,249L222.13249211356467,249L224.18927444794954,249L226.2460567823344,249L228.30283911671924,249L230.35962145110412,249L232.41640378548897,249L234.47318611987382,249L236.5299684542587,249L238.58675078864354,249L240.6435331230284,249L242.70031545741327,249L244.75709779179812,249L246.81388012618294,249L248.87066246056784,249L250.9274447949527,249L252.9842271293375,249L255.04100946372242,249L257.09779179810727,249L259.15457413249214,249L261.21135646687696,249L267.38170347003154,249L269.4384858044164,249L287.9495268138801,249L290.006309148265,249L292.06309148264984,249L294.1198738170347,249L296.17665615141954,249L298.2334384858044,249L300.2902208201893,249L302.3470031545741,249L304.403785488959,249L306.46056782334387,249L308.5173501577287,249L310.57413249211356,249L312.63091482649844,249L314.68769716088326,249L316.74447949526814,249L318.801261829653,249L320.85804416403784,249L322.9148264984227,249L324.9716088328076,249L327.0283911671924,249L329.0851735015773,249L331.1419558359621,249L333.19873817034704,249L335.25552050473186,249L341.42586750788644,249L343.4826498422713,249L345.5394321766562,249L347.596214511041,249L349.6529968454259,249L351.7097791798107,249L353.76656151419553,249L355.82334384858046,249L357.88012618296534,249L359.93690851735016,249L386.6750788643533,249L388.73186119873816,249L390.78864353312304,249L392.8454258675079,249L394.90220820189273,249L396.9589905362776,249L399.01577287066243,249L401.0725552050473,249L403.1293375394322,249L405.18611987381706,249L407.2429022082019,249L409.29968454258676,249L411.3564668769716,249L413.4132492113565,249L415.47003154574134,249L417.5268138801262,249L440.15141955835963,249L442.20820189274446,249L444.26498422712933,249L446.32176656151415,249L448.3785488958991,249L450.4353312302839,249L452.4921135646688,249L454.5488958990536,249L551.217665615142,249L553.2744479495268,249L555.3312302839117,249L557.3880126182966,249L588.2397476340694,249L590.2965299684543,249L592.3533123028391,249L594.410094637224,249L596.4668769716088,249L598.5236593059936,249L625.2618296529969,249L627.3186119873817,249L641.7160883280757,249L643.7728706624605,249L645.8296529968454,249L647.8864353312304,249L649.9432176656152,249L652,249" stroke="#83c9ff" stroke-width="2"/></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h652v249h-652Z"/><g><g class="mark-line role-mark marks" clip-path="url(#clip16)" role="graphics-object" aria-roledescription="line mark container"><path aria-label="settlement_start: Dec 06, 2022; value: 670;  : Offer Volume; label: Offer Volume" role="graphics-symbol" aria-roledescription="line mark" d="M0,144.73125000000002L2.056782334384858,144.73125000000002L4.113564668769716,206.98125000000002L6.170347003154574,206.98125000000002L8.227129337539433,222.54375000000002L10.28391167192429,222.54375000000002L12.340694006309148,206.98125000000002L14.397476340694007,206.98125000000002L16.454258675078865,206.98125000000002L18.51104100946372,206.98125000000002L20.56782334384858,206.98125000000002L22.624605678233436,206.98125000000002L24.681388012618296,180.525L26.738170347003155,180.525L28.794952681388015,164.9625L30.851735015772867,164.9625L32.90851735015773,141.61875L34.965299684542586,141.61875L37.02208201892744,164.9625L39.078864353312305,164.9625L41.13564668769716,141.61875L43.192429022082024,141.61875L45.24921135646687,118.27499999999999L47.30599369085174,118.27499999999999L49.36277602523659,196.0875L51.41955835962145,196.0875L94.61198738170349,233.4375L96.66876971608832,233.4375L98.72555205047318,206.203125L100.78233438485805,206.203125L102.8391167192429,206.203125L104.89589905362776,206.203125L106.95268138801262,241.21875L109.00946372239747,241.21875L131.63406940063092,210.09375L133.69085173501577,210.09375L135.74763406940065,194.53125L137.8044164037855,194.53125L139.86119873817034,204.2578125L141.91798107255522,204.2578125L143.97476340694004,205.23046875L146.03154574132492,205.23046875L148.08832807570977,186.75L150.14511041009465,186.75L152.2018927444795,225.65625L154.25867507886434,225.65625L197.45110410094637,108.9375L199.50788643533122,108.9375L201.5646687697161,171.1875L203.62145110410094,171.1875L205.6782334384858,186.75L207.73501577287067,186.75L209.79179810725552,171.1875L211.84858044164037,171.1875L213.90536277602524,155.625L215.9621451104101,155.625L218.01892744479494,163.40625L220.07570977917982,163.40625L222.13249211356467,163.40625L224.18927444794954,163.40625L226.2460567823344,147.84375L228.30283911671924,147.84375L230.35962145110412,233.4375L232.41640378548897,233.4375L234.47318611987382,233.4375L236.5299684542587,233.4375L238.58675078864354,225.811875L240.6435331230284,225.811875L242.70031545741327,210.09375L244.75709779179812,210.09375L246.81388012618294,194.53125L248.87066246056784,194.53125L250.9274447949527,194.53125L252.9842271293375,194.53125L255.04100946372242,194.53125L257.09779179810727,194.53125L259.15457413249214,217.875L261.21135646687696,217.875L267.38170347003154,206.203125L269.4384858044164,206.203125L287.9495268138801,163.40625L290.006309148265,163.40625L292.06309148264984,54.46875L294.1198738170347,54.46875L296.17665615141954,7.78125L298.2334384858044,7.78125L300.2902208201893,31.125L302.3470031545741,31.125L304.403785488959,62.25L306.46056782334387,62.25L308.5173501577287,62.25L310.57413249211356,62.25L312.63091482649844,73.921875L314.68769716088326,73.921875L316.74447949526814,124.5L318.801261829653,124.5L320.85804416403784,108.9375L322.9148264984227,108.9375L324.9716088328076,93.375L327.0283911671924,93.375L329.0851735015773,108.9375L331.1419558359621,108.9375L333.19873817034704,225.65625L335.25552050473186,225.65625L341.42586750788644,151.734375L343.4826498422713,151.734375L345.5394321766562,79.99125000000001L347.596214511041,79.99125000000001L349.6529968454259,140.0625L351.7097791798107,140.0625L353.76656151419553,93.375L355.82334384858046,93.375L357.88012618296534,210.09375L359.93690851735016,210.09375L386.6750788643533,235.42171875L388.73186119873816,235.42171875L390.78864353312304,237.36703125L392.8454258675079,237.36703125L394.90220820189273,137.61140625000002L396.9589905362776,137.61140625000002L399.01577287066243,132.28125L401.0725552050473,132.28125L403.1293375394322,198.421875L405.18611987381706,198.421875L407.2429022082019,182.859375L409.29968454258676,182.859375L411.3564668769716,153.6796875L413.4132492113565,153.6796875L415.47003154574134,188.6953125L417.5268138801262,188.6953125L440.15141955835963,210.09375L442.20820189274446,210.09375L444.26498422712933,155.625L446.32176656151415,155.625L448.3785488958991,194.53125L450.4353312302839,194.53125L452.4921135646688,194.53125L454.5488958990536,194.53125L551.217665615142,210.09375L553.2744479495268,210.09375L555.3312302839117,217.875L557.3880126182966,217.875L588.2397476340694,92.44125L590.2965299684543,92.44125L592.3533123028391,191.41875000000002L594.410094637224,191.41875000000002L596.4668769716088,202.3125L598.5236593059936,202.3125L625.2618296529969,221.765625L627.3186119873817,221.765625L641.7160883280757,227.990625L643.7728706624605,227.990625L645.8296529968454,154.14656250000002L647.8864353312304,154.14656250000002L649.9432176656152,186.75L652,186.75" stroke="#0068c9" stroke-width="2"/></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g><g class="mark-group role-legend" role="graphics-symbol" aria-roledescription="legend" aria-label="Symbol legend titled ' ' for stroke color with 2 values: Bid Volume, Offer Volume"><g transform="translate(0,286)"><path class="background" aria-hidden="true" d="M0,0h245v42h-245Z" pointer-events="none"/><g><g class="mark-group role-legend-entry"><g transform="translate(7,21)"><path class="background" aria-hidden="true" d="M0,0h0v0h0Z" pointer-events="none"/><g><g class="mark-group role-scope" role="graphics-object" aria-roledescription="group mark container"><g transform="translate(0,0)"><path class="background" aria-hidden="true" d="M0,0h102v14h-102Z" pointer-events="none" opacity="1"/><g><g class="mark-symbol role-legend-symbol" pointer-events="none"><path transform="translate(7,7)" d="M-5,0L5,0" stroke="#83c9ff" stroke-width="4" opacity="1"/></g><g class="mark-text role-legend-label" pointer-events="none"><text text-anchor="start" transform="translate(18,11)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-weight="400" fill="#e6eaf1" opacity="1">Bid Volume</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g><g transform="translate(112,0)"><path class="background" aria-hidden="true" d="M0,0h118.80000305175781v14h-118.80000305175781Z" pointer-events="none" opacity="1"/><g><g class="mark-symbol role-legend-symbol" pointer-events="none"><path transform="translate(7,7)" d="M-5,0L5,0" stroke="#0068c9" stroke-width="4" opacity="1"/></g><g class="mark-text role-legend-label" pointer-events="none"><text text-anchor="start" transform="translate(18,11)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-weight="400" fill="#e6eaf1" opacity="1">Offer Volume</text></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g><g class="mark-text role-legend-title" pointer-events="none"><text text-anchor="start" transform="translate(7,18)" font-family="&quot;Source Code Pro&quot;, monospace" font-size="14px" font-style="normal" font-weight="400" fill="#e6eaf1" opacity="1"/></g></g><path class="foreground" aria-hidden="true" d="" pointer-events="none" display="none"/></g></g></g><path class="foreground" aria-hidden="true" d="" display="none"/></g></g></g><defs><clipPath id="clip15"><rect x="0" y="0" width="652" height="249"/></clipPath><clipPath id="clip16"><rect x="0" y="0" width="652" height="249"/></clipPath></defs></svg>
